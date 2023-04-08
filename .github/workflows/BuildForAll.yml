@@ -1,0 +1,73 @@
+# This workflow will build a golang project for multiple platforms
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: BuildForAll
+
+on:
+  release:
+    types: [created]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
+      - name: Install gox
+        run: |
+          go get github.com/mitchellh/gox
+          go install github.com/mitchellh/gox
+          echo 'export PATH="$HOME/go/bin:$PATH"' >> $HOME/.bashrc
+
+      - name: Build
+        run: |
+          gox -os="linux darwin windows" -arch="amd64" -output="gshare_{{.OS}}_{{.Arch}}" -ldflags="-s -w" .
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: gshare-builds
+          path: |
+            ./gshare_linux_amd64
+            ./gshare_darwin_amd64
+            ./gshare_windows_amd64.exe
+
+      - name: Upload gshare_linux_amd64 to Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./gshare_linux_amd64 # 要上传的文件路径
+          asset_name: gshare_linux_amd64 # 要在 Release 资产中显示的文件名
+          asset_content_type: application/octet-stream # 文件内容类型
+
+      - name: Upload gshare_darwin_amd64 to Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./gshare_darwin_amd64 # 要上传的文件路径
+          asset_name: gshare_darwin_amd64 # 要在 Release 资产中显示的文件名
+          asset_content_type: application/octet-stream # 文件内容类型
+
+      - name: Upload gshare_windows_amd64 to Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./gshare_windows_amd64.exe # 要上传的文件路径
+          asset_name: gshare_windows_amd64.exe # 要在 Release 资产中显示的文件名
+          asset_content_type: application/octet-stream # 文件内容类型

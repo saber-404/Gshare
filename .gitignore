@@ -1,0 +1,6 @@
+.idea
+*.exe
+tmp
+*.todo
+*.zip
+Makefile
